@@ -2,7 +2,15 @@ from typing import List
 from models import Job
 
 job_list = [
-        {"id": "6", "timestamp": "2025-07-17 12:00:00", "jobName": "NLP Model Training", "logs": ["Log for job 6 line 1", "Log for job 6 line 2", "Log for job 6 line 3", "Log for job 6 line 4"], "status": "대기"},
+        { "id": "6", 
+        "timestamp": "2025-07-17 12:00:00", 
+        "jobName": "NLP Model Training", 
+        "logs": ["Log for job 6 line 1"], 
+        "status": "대기",
+        "projectPath": "/home/workspace",  
+        "venvPath": "/home/workspace/.venv", 
+        "mainFile": "/home/workspace/main.py"
+        },
         {"id": "5", "timestamp": "2025-07-16 09:30:00", "jobName": "Image Classification", "status": "중단"},
         {"id": "4", "timestamp": "2025-07-15 11:00:00", "jobName": "Data Preprocessing", "status": "종료"},
         {"id": "3", "timestamp": "2025-07-15 10:15:30", "jobName": "Deep Learning Job C", "status": "종료"},

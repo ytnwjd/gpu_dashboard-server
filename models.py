@@ -12,6 +12,15 @@ class Job(BaseModel):
     jobName: str
     logs: Optional[List[str]] = None
     status: str
+    projectPath: Optional[str] = None
+    venvPath: Optional[str] = None
+    mainFile: Optional[str] = None
+
+class JobCreate(BaseModel):
+    jobName: str
+    projectPath: str
+    venvPath: str
+    mainFile: str
 
 class JobListResponse(ApiResponse):
     data: Optional[List[Job]] = None
