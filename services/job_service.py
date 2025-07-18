@@ -2,12 +2,12 @@ from typing import List
 from models import Job
 
 job_list = [
-        {"id": "6", "timestamp": "2025-07-17 12:00:00", "jobName": "NLP Model Training", "logs": ["Log for job 6 line 1", "Log for job 6 line 2", "Log for job 6 line 3", "Log for job 6 line 4"]},
-        {"id": "5", "timestamp": "2025-07-16 09:30:00", "jobName": "Image Classification"},
-        {"id": "4", "timestamp": "2025-07-15 11:00:00", "jobName": "Data Preprocessing"},
-        {"id": "3", "timestamp": "2025-07-15 10:15:30", "jobName": "Deep Learning Job C"},
-        {"id": "2", "timestamp": "2025-07-14 10:15:30", "jobName": "Deep Learning Model Training"},
-        {"id": "1", "timestamp": "2025-07-14 10:00:00", "jobName": "My first GPU job"},  
+        {"id": "6", "timestamp": "2025-07-17 12:00:00", "jobName": "NLP Model Training", "logs": ["Log for job 6 line 1", "Log for job 6 line 2", "Log for job 6 line 3", "Log for job 6 line 4"], "status": "대기"},
+        {"id": "5", "timestamp": "2025-07-16 09:30:00", "jobName": "Image Classification", "status": "중단"},
+        {"id": "4", "timestamp": "2025-07-15 11:00:00", "jobName": "Data Preprocessing", "status": "종료"},
+        {"id": "3", "timestamp": "2025-07-15 10:15:30", "jobName": "Deep Learning Job C", "status": "종료"},
+        {"id": "2", "timestamp": "2025-07-14 10:15:30", "jobName": "Deep Learning Model Training", "status": "종료"},
+        {"id": "1", "timestamp": "2025-07-14 10:00:00", "jobName": "My first GPU job", "status": "종료"},  
 ]
 
 class JobService:

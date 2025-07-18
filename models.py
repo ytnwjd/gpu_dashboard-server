@@ -11,6 +11,7 @@ class Job(BaseModel):
     timestamp: str
     jobName: str
     logs: Optional[List[str]] = None
+    status: str
 
 class JobListResponse(ApiResponse):
     data: Optional[List[Job]] = None
