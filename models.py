@@ -7,7 +7,7 @@ class ApiResponse(BaseModel):
     data: Optional[Any] = None # data 필드는 어떤 타입이든 될 수 있으므로 Any 사용
 
 class Job(BaseModel):
-    id: str
+    id: int
     timestamp: str
     status: str
     logs: Optional[List[str]] = None
