@@ -9,9 +9,9 @@ class ApiResponse(BaseModel):
 class Job(BaseModel):
     id: str
     timestamp: str
-    jobName: str
-    logs: Optional[List[str]] = None
     status: str
+    logs: Optional[List[str]] = None
+    jobName: str
     projectPath: Optional[str] = None
     venvPath: Optional[str] = None
     mainFile: Optional[str] = None
@@ -22,5 +22,17 @@ class JobCreate(BaseModel):
     venvPath: str
     mainFile: str
 
+class JobResponse(ApiResponse):
+    data: Optional[Job] = None
+
 class JobListResponse(ApiResponse):
     data: Optional[List[Job]] = None
+
+class GpuStatus(BaseModel):
+    gpu24gbActive: int  #사용 중인 GPU 개수
+    gpu8gbActive: int
+    gpu24gbAvailable: int   #사용 가능한 24gb gpu 갯수 
+    gpu8gbAvailable: int
+
+class GpuStatusResponse(ApiResponse):
+    data: Optional[GpuStatus] = None
