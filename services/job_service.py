@@ -11,7 +11,7 @@ job_list = [
         "venvPath": "/home/workspace/.venv", 
         "mainFile": "/home/workspace/main.py"
         },
-        {"id": "5", "timestamp": "2025-07-16 09:30:00", "jobName": "Image Classification", "status": "중단"},
+        {"id": "5", "timestamp": "2025-07-16 09:30:00", "jobName": "Image Classification", "logs": ["Log for job 6 line 1"], "status": "실행 중"},
         {"id": "4", "timestamp": "2025-07-15 11:00:00", "jobName": "Data Preprocessing", "status": "종료"},
         {"id": "3", "timestamp": "2025-07-15 10:15:30", "jobName": "Deep Learning Job C", "status": "종료"},
         {"id": "2", "timestamp": "2025-07-14 10:15:30", "jobName": "Deep Learning Model Training", "status": "종료"},
