@@ -33,6 +33,7 @@ class GpuStatus(BaseModel):
     gpu8gbActive: int
     gpu24gbAvailable: int   #사용 가능한 24gb gpu 갯수 
     gpu8gbAvailable: int
+    jobsInQueue: int 
 
 class GpuStatusResponse(ApiResponse):
     data: Optional[GpuStatus] = None
