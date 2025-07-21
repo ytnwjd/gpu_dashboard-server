@@ -124,13 +124,13 @@ async def delete_job(job_id: int):
                 status_code=404,
                 detail=ApiResponse(
                     code=404,
-                    message=f"Job ID {job_id}을(를) 찾을 수 없습니다.",
+                    message=f"Job을 찾을 수 없습니다.",
                     data=None
                 ).model_dump()
             )
         return ApiResponse(
             code=200,
-            message=f"Job {job_id}번이 성공적으로 삭제되었습니다.",
+            message=f"Job이 성공적으로 삭제되었습니다.",
             data=None
         )
     except HTTPException as http_exc:
@@ -140,7 +140,7 @@ async def delete_job(job_id: int):
             status_code=500,
             detail=ApiResponse(
                 code=500,
-                message=f"Job {job_id}번 삭제에 실패했습니다.: {str(e)}",
+                message=f"Job 삭제에 실패했습니다.: {str(e)}",
                 data=None
             ).model_dump()
         )
