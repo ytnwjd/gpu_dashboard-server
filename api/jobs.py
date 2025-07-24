@@ -67,41 +67,24 @@ async def get_job_by_id(job_id: int):
             description="새로운 Job을 생성하고 등록한다.")
 async def create_job(job_data: JobCreate = Body(...)):
     try:
+        validation_message = job_service.inspect_job(job_data)
+
+        if validation_message:
+            raise HTTPException(
+                status_code=400,
+                detail=ApiResponse(
+                    code=400,
+                    message=f"Job 데이터 검증 실패: {validation_message}",
+                    data=None
+                ).model_dump()
+            )
+        
         new_job = job_service.create_job(job_data)
+
         return ApiResponse(
             code=200,
             message="Job이 성공적으로 생성되었습니다.",
             data=new_job.model_dump()
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=ApiResponse(
-                code=500,
-                message=f"Job 생성에 실패했습니다.: {str(e)}",
-                data=None
-            ).model_dump()
-        )
-
-@router.put("/{job_id}", response_model=ApiResponse,
-            summary="Job 정보 수정",
-            description="특정 Job ID에 해당하는 Job의 정보를 수정한다.")
-async def update_job(job_id: int, job_data: JobCreate = Body(...)): 
-    try:
-        updated_job = job_service.update_job(job_id, job_data)
-        if not updated_job:
-            raise HTTPException(
-                status_code=404,
-                detail=ApiResponse(
-                    code=404,
-                    message=f"Job ID {job_id}을(를) 찾을 수 없습니다.",
-                    data=None
-                ).model_dump()
-            )
-        return ApiResponse(
-            code=200,
-            message=f"Job {job_id}번이 성공적으로 수정되었습니다.",
-            data=None
         )
     except HTTPException as http_exc:
         raise http_exc
@@ -110,7 +93,7 @@ async def update_job(job_id: int, job_data: JobCreate = Body(...)):
             status_code=500,
             detail=ApiResponse(
                 code=500,
-                message=f"Job {job_id}번 수정에 실패했습니다.: {str(e)}",
+                message=f"Job 생성에 실패했습니다.: {str(e)}",
                 data=None
             ).model_dump()
         )

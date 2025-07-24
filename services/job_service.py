@@ -105,4 +105,30 @@ class JobService:
         _job_list = [job for job in _job_list if job["id"] != job_id]
         return len(_job_list) < initial_len
 
+    def inspect_job(self, job_candidate: JobCreate) -> Optional[str]:
+        empty_fields = []
+
+        if not job_candidate.jobName or job_candidate.jobName.strip() == "":
+            empty_fields.append("Job 이름")
+
+        if job_candidate.projectPath is None or job_candidate.projectPath.strip() == "":
+            empty_fields.append("프로젝트 경로")
+
+        if job_candidate.venvPath is None or job_candidate.venvPath.strip() == "":
+            empty_fields.append("가상 환경 경로")
+
+        if job_candidate.mainFile is None or job_candidate.mainFile.strip() == "":
+            empty_fields.append("메인 파일 경로")
+
+        if empty_fields:
+            if len(empty_fields) == 1:
+                return f"{empty_fields[0]}은(는) 비어 있을 수 없습니다."
+            elif len(empty_fields) == 2:
+                return f"{empty_fields[0]}와 {empty_fields[1]}는 비어 있을 수 없습니다."
+            else:
+                return f"{', '.join(empty_fields[:-1])}와 {empty_fields[-1]}는 비어 있을 수 없습니다."
+        else:
+            return None 
+
+            
 job_service = JobService()
