@@ -71,7 +71,7 @@ async def create_job(job_data: JobCreate = Body(...)):
         return ApiResponse(
             code=200,
             message="Job이 성공적으로 생성되었습니다.",
-            data={"id": new_job.id}
+            data=new_job.model_dump()
         )
     except Exception as e:
         raise HTTPException(
