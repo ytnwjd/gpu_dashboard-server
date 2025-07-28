@@ -37,3 +37,14 @@ class GpuStatus(BaseModel):
 
 class GpuStatusResponse(ApiResponse):
     data: Optional[GpuStatus] = None
+    
+class FileItem(BaseModel):  #파일 또는 폴더의 기본 정보
+    name: str
+    is_directory: bool
+    path: str
+    size: Optional[int] = None  # 파일인 경우에만 크기 정보
+    last_modified: Optional[float] = None # (timestamp)
+
+class DirectoryContent(BaseModel):
+    current_path: str
+    items: List[FileItem]    
