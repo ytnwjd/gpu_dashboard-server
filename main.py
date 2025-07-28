@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from api import jobs, gpu
+from api import jobs, gpu, file
 
 app = FastAPI()
 
@@ -20,6 +20,7 @@ app.add_middleware(
 
 app.include_router(jobs.router)
 app.include_router(gpu.router)
+app.include_router(file.router)
 
 def read_root():
     return {"message": "Hello, World!"}
