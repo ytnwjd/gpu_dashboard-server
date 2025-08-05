@@ -1,8 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+
+from dotenv import load_dotenv
 from api import jobs, gpu, file
 
+load_dotenv() 
 app = FastAPI()
 
 # CORS 
