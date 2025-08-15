@@ -4,9 +4,10 @@ import uvicorn
 
 from dotenv import load_dotenv
 from api import jobs, gpu, file
+from database import db
 
 load_dotenv() 
-app = FastAPI()
+app = FastAPI(title="GPU Dashboard Server")
 
 # CORS 
 origins = [
@@ -25,8 +26,30 @@ app.include_router(jobs.router)
 app.include_router(gpu.router)
 app.include_router(file.router)
 
+@app.get("/")
 def read_root():
-    return {"message": "Hello, World!"}
+    return {"message": "GPU Dashboard Server", "status": "running"}
+
+@app.get("/db-health")
+def health_check():
+    try:
+        # MongoDB 연결 상태 확인
+        db.client.admin.command('ping')
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "message": "서버가 정상적으로 실행 중입니다."
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": str(e)
+        }
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    db.close()
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
