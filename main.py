@@ -5,6 +5,7 @@ import uvicorn
 from dotenv import load_dotenv
 from api import jobs, gpu, file
 from database import db
+from database_init import initialize_database
 
 load_dotenv() 
 app = FastAPI(title="GPU Dashboard Server")
@@ -30,7 +31,7 @@ app.include_router(file.router)
 def read_root():
     return {"message": "GPU Dashboard Server", "status": "running"}
 
-@app.get("/db-health")
+@app.get("/health")
 def health_check():
     try:
         # MongoDB 연결 상태 확인
@@ -46,6 +47,10 @@ def health_check():
             "database": "disconnected",
             "error": str(e)
         }
+
+@app.on_event("startup")
+async def startup_event():
+    initialize_database()
 
 @app.on_event("shutdown")
 async def shutdown_event():
