@@ -1,10 +1,15 @@
 from typing import List, Dict, Optional
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 from database import db
 from models import Job, JobCreate
 from services.job_queue_service import job_queue_service
 from database_init import get_next_job_id
+
+KST = timezone(timedelta(hours=9))
+
+def get_korean_time():
+    return datetime.now(KST)
 
 class JobService:
     def get_all_jobs(self) -> List[Job]:
@@ -110,7 +115,7 @@ class JobService:
             
             new_job_dict = job_data.model_dump()
             new_job_dict["_id"] = job_id
-            new_job_dict["timestamp"] = datetime.utcnow()
+            new_job_dict["timestamp"] = get_korean_time()
             new_job_dict["status"] = "pending"
             new_job_dict["log"] = None
             
@@ -144,7 +149,7 @@ class JobService:
             jobs_collection = db.get_collection('jobs')
             
             update_data = job_data.model_dump()
-            update_data["timestamp"] = datetime.utcnow()
+            update_data["timestamp"] = get_korean_time()
             
             result = jobs_collection.update_one(
                 {"_id": job_id},

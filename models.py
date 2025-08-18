@@ -1,6 +1,11 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+KST = timezone(timedelta(hours=9))
+
+def get_korean_time():
+    return datetime.now(KST)
 
 # Pydantic 모델 기본 설정
 class MongoBaseModel(BaseModel):
@@ -22,7 +27,7 @@ class Gpu(MongoBaseModel):
 
 class Job(MongoBaseModel):
     id: int = Field(default=0, alias="_id")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=get_korean_time)
     status: str = "pending"
     log: Optional[str] = None
     jobName: str
