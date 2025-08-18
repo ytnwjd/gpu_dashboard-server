@@ -115,7 +115,7 @@ class JobService:
             
             new_job_dict = job_data.model_dump()
             new_job_dict["_id"] = job_id
-            new_job_dict["timestamp"] = get_korean_time()
+            new_job_dict["timestamp"] = get_korean_time().isoformat()
             new_job_dict["status"] = "pending"
             new_job_dict["log"] = None
             
@@ -130,7 +130,7 @@ class JobService:
             result = jobs_collection.insert_one(new_job_dict)
             created_job = jobs_collection.find_one({"_id": job_id})
             
-            if created_job:
+            if created_job:             
                 job_dict = dict(created_job)
                 
                 # GPU가 없어서 대기열에 추가된 경우

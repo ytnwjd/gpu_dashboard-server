@@ -27,7 +27,7 @@ class Gpu(MongoBaseModel):
 
 class Job(MongoBaseModel):
     id: int = Field(default=0, alias="_id")
-    timestamp: datetime = Field(default_factory=get_korean_time)
+    timestamp: str = Field(default_factory=lambda: get_korean_time().isoformat())
     status: str = "pending"
     log: Optional[str] = None
     jobName: str
