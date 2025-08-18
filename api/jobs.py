@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Query
 from typing import List, Optional
 
 from models import ApiResponse, Job, JobListResponse, JobCreate, JobResponse
@@ -62,9 +62,9 @@ async def get_job_by_id(job_id: int):
             ).model_dump()
         )
 
-@router.post("/", response_model=ApiResponse, 
+@router.post("/", response_model=JobResponse, 
             summary="새로운 Job 생성",
-            description="새로운 Job을 생성하고 등록한다.")
+            description="새로운 Job을 생성하고 사용 가능한 GPU를 자동으로 배정")
 async def create_job(job_data: JobCreate = Body(...)):
     try:
         validation_message = job_service.inspect_job(job_data)
@@ -80,11 +80,26 @@ async def create_job(job_data: JobCreate = Body(...)):
             )
         
         new_job = job_service.create_job(job_data)
+        
+        if not new_job:
+            raise HTTPException(
+                status_code=500,
+                detail=ApiResponse(
+                    code=500,
+                    message="Job 생성에 실패했습니다.",
+                    data=None
+                ).model_dump()
+            )
 
-        return ApiResponse(
+        if new_job.gpuId:
+            message = f"Job이 성공적으로 생성되었습니다. (GPU {new_job.gpuId} 배정됨)"
+        else:
+            message = f"Job이 대기열에 추가되었습니다."
+
+        return JobResponse(
             code=200,
-            message="Job이 성공적으로 생성되었습니다.",
-            data=new_job.model_dump()
+            message=message,
+            data=new_job
         )
     except HTTPException as http_exc:
         raise http_exc
@@ -94,6 +109,52 @@ async def create_job(job_data: JobCreate = Body(...)):
             detail=ApiResponse(
                 code=500,
                 message=f"Job 생성에 실패했습니다.: {str(e)}",
+                data=None
+            ).model_dump()
+        )
+
+@router.put("/{job_id}", response_model=JobResponse,
+            summary="Job 수정",
+            description="특정 Job ID에 해당하는 Job을 수정")
+async def update_job(job_id: int, job_data: JobCreate = Body(...)):
+    try:
+        validation_message = job_service.inspect_job(job_data)
+
+        if validation_message:
+            raise HTTPException(
+                status_code=400,
+                detail=ApiResponse(
+                    code=400,
+                    message=f"Job 데이터 검증 실패: {validation_message}",
+                    data=None
+                ).model_dump()
+            )
+        
+        updated_job = job_service.update_job(job_id, job_data)
+        
+        if not updated_job:
+            raise HTTPException(
+                status_code=404,
+                detail=ApiResponse(
+                    code=404,
+                    message=f"Job ID {job_id}을(를) 찾을 수 없습니다.",
+                    data=None
+                ).model_dump()
+            )
+
+        return JobResponse(
+            code=200,
+            message="Job이 성공적으로 수정되었습니다.",
+            data=updated_job
+        )
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=ApiResponse(
+                code=500,
+                message=f"Job 수정에 실패했습니다.: {str(e)}",
                 data=None
             ).model_dump()
         )
