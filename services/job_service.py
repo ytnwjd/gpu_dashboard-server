@@ -129,6 +129,10 @@ class JobService:
             new_job_dict["log"] = None
             new_job_dict["requested_at"] = get_korean_time().isoformat()  # 작업 요청 시간 기록
             
+            # user 필드가 없으면 기본값 설정
+            if not new_job_dict.get("user"):
+                new_job_dict["user"] = "anonymous"
+            
             if assigned_gpu_id:
                 # GPU가 있으면 바로 배정
                 new_job_dict["gpuId"] = assigned_gpu_id

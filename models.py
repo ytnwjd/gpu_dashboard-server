@@ -34,6 +34,7 @@ class Job(MongoBaseModel):
     projectPath: str
     venvPath: str
     mainFile: str
+    user: Optional[str] = None 
     gpuId: Optional[int] = None  # 배정된 GPU ID
     requested_at: Optional[str] = None  # 작업 요청 시간
     started_at: Optional[str] = None    # 작업 시작 시간
@@ -44,6 +45,7 @@ class JobCreate(BaseModel):
     projectPath: str
     venvPath: str
     mainFile: str
+    user: Optional[str] = None
 
 class JobResponse(ApiResponse):
     data: Optional[Job] = None
