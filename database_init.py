@@ -8,15 +8,15 @@ from database import db
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 def create_collections():
-    print("📁 MongoDB 컬렉션 생성 중...")
-    collections = ['gpus', 'jobs', 'job_queue', 'counters'] # counters(Job ID를 자동 증가)
-    
+    print("📁 MongoDB 컬렉션 확인 중...")
+    collections = ['gpus', 'jobs'] 
+
     for collection_name in collections:
         try:
             collection = db.get_collection(collection_name)
-            # print(f"{collection_name} 컬렉션 생성 완료")
+            # print(f"{collection_name} 컬렉션 확인 완료")
         except Exception as e:
-            print(f"{collection_name} 컬렉션 생성 실패: {e}")
+            print(f"{collection_name} 컬렉션 확인 실패: {e}")
 
 def create_indexes():
     print("MongoDB 인덱스 생성 중...")
@@ -40,9 +40,11 @@ def create_initial_gpus():
     try:
         gpus_collection = db.get_collection('gpus')
         
-        if gpus_collection.count_documents({}) > 0:            
+        if gpus_collection.count_documents({}) > 0:
+            print("기존 GPU 데이터를 보존합니다.")
             return
-                
+        
+        print("새로운 GPU 데이터를 생성합니다.")
         for i in range(1, 7):
             gpu_data = {
                 "_id": i,
@@ -62,9 +64,8 @@ def create_initial_gpus():
     except Exception as e:
         print(f"GPU 데이터 생성 실패: {e}")
 
-def create_initial_counters():
+def get_next_job_id():
     try:
-        counters_collection = db.get_collection('counters')
         jobs_collection = db.get_collection('jobs')
         
         max_job_id = 0
@@ -73,48 +74,24 @@ def create_initial_counters():
             if max_job:
                 max_job_id = max_job["_id"]
         
-        if counters_collection.count_documents({"_id": "job_id"}) == 0:
-            counters_collection.insert_one({
-                "_id": "job_id",
-                "sequence_value": max_job_id
-            })           
-        else:           
-            current_counter = counters_collection.find_one({"_id": "job_id"})
-            if current_counter and current_counter["sequence_value"] < max_job_id:
-                counters_collection.update_one(
-                    {"_id": "job_id"},
-                    {"$set": {"sequence_value": max_job_id}}
-                )
-                # print(f"Job ID 카운터 업데이트 완료 (새 값: {max_job_id})")
+        next_id = max_job_id + 1
+        return next_id
         
-    except Exception as e:
-        print(f"카운터 초기화 실패: {e}")
-
-def get_next_job_id():
-    try:
-        counters_collection = db.get_collection('counters')
-        result = counters_collection.find_one_and_update(
-            {"_id": "job_id"},
-            {"$inc": {"sequence_value": 1}},
-            return_document=True
-        )
-        return result["sequence_value"]
     except Exception as e:
         print(f"Job ID 생성 실패: {e}")
         return None
 
 def initialize_database():
     print("=" * 60)
-    print("🚀 데이터베이스 시작")
+    print("🚀 데이터베이스 연결 및 확인")
     print("=" * 60)
     try:
         create_collections()
         create_indexes()
         create_initial_gpus()
-        create_initial_counters()
 
         collections = db.db.list_collection_names()
-        print(f"\n생성된 컬렉션: {collections}")
+        print(f"\n확인된 컬렉션: {collections}")
         
         # 각 컬렉션의 문서 수 출력
         for collection_name in collections:
@@ -126,7 +103,7 @@ def initialize_database():
                 print(f"  - {collection_name}: 조회 실패 ({e})")
                 
     except Exception as e:
-        print(f"\n 데이터베이스 초기화 실패: {e}")
+        print(f"\n❌ 데이터베이스 연결 실패: {e}")
         return False
 
 if __name__ == "__main__":
