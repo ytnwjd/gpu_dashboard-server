@@ -190,8 +190,6 @@ class JobService:
                 
                 self._process_queued_jobs()
             
-            # 대기열 관련 코드 제거 (더 이상 별도 큐 컬렉션 사용하지 않음)
-            
             result = jobs_collection.delete_one({"_id": job_id})
             return result.deleted_count > 0
         except Exception as e:
