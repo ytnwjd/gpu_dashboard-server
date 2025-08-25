@@ -23,7 +23,7 @@ def create_indexes():
     
     try:        
         jobs_collection = db.get_collection('jobs')
-        jobs_collection.create_index([("timestamp", DESCENDING)])
+        jobs_collection.create_index([("requested_at", DESCENDING)])
         jobs_collection.create_index("status")
         # print("jobs 컬렉션 인덱스 생성 완료")
     except Exception as e:

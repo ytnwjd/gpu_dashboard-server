@@ -14,7 +14,7 @@ class JobService:
     def get_all_jobs(self) -> List[Job]:
         try:
             jobs_collection = db.get_collection('jobs')
-            jobs_data = jobs_collection.find().sort("timestamp", -1)
+            jobs_data = jobs_collection.find().sort("requested_at", -1)
             
             jobs = []
             for job_data in jobs_data:               

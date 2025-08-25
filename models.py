@@ -27,7 +27,6 @@ class Gpu(MongoBaseModel):
 
 class Job(MongoBaseModel):
     id: int = Field(default=0, alias="_id")
-    timestamp: str = Field(default_factory=lambda: get_korean_time().isoformat())
     status: str = "pending"
     log: Optional[str] = None
     jobName: str
@@ -36,7 +35,7 @@ class Job(MongoBaseModel):
     mainFile: str
     user: Optional[str] = None 
     gpuId: Optional[int] = None  # 배정된 GPU ID
-    requested_at: Optional[str] = None  # 작업 요청 시간
+    requested_at: str = Field(default_factory=lambda: get_korean_time().isoformat())  # 작업 요청 시간
     started_at: Optional[str] = None    # 작업 시작 시간
     completed_at: Optional[str] = None  # 작업 종료 시간
 
