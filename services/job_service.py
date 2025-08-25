@@ -124,7 +124,6 @@ class JobService:
             
             new_job_dict = job_data.model_dump()
             new_job_dict["_id"] = job_id
-            new_job_dict["timestamp"] = get_korean_time().isoformat()
             new_job_dict["status"] = "pending"
             new_job_dict["log"] = None
             new_job_dict["requested_at"] = get_korean_time().isoformat()  # 작업 요청 시간 기록
@@ -159,7 +158,6 @@ class JobService:
             jobs_collection = db.get_collection('jobs')
             
             update_data = job_data.model_dump()
-            update_data["timestamp"] = get_korean_time()
             
             result = jobs_collection.update_one(
                 {"_id": job_id},
