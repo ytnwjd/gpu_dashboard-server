@@ -35,6 +35,9 @@ class Job(MongoBaseModel):
     venvPath: str
     mainFile: str
     gpuId: Optional[int] = None  # 배정된 GPU ID
+    requested_at: Optional[str] = None  # 작업 요청 시간
+    started_at: Optional[str] = None    # 작업 시작 시간
+    completed_at: Optional[str] = None  # 작업 종료 시간
 
 class JobCreate(BaseModel):
     jobName: str
@@ -47,10 +50,6 @@ class JobResponse(ApiResponse):
 
 class JobListResponse(ApiResponse):
     data: Optional[List[Job]] = None
-    
-class JobQueue(MongoBaseModel):
-    id: int = Field(default=0, alias="_id")
-    queue: List[int] = [] 
 
 class GpuStatus(BaseModel):
     gpu24gbActive: int  #사용 중인 GPU 개수

@@ -3,7 +3,6 @@ from bson import ObjectId
 
 from database import db
 from models import Gpu, GpuStatus
-from services.job_queue_service import job_queue_service
 
 class GpuService:
     def get_gpu_status(self) -> GpuStatus:
@@ -18,8 +17,9 @@ class GpuService:
             active_8gb = gpus_collection.count_documents({"capacity": 8, "isAvailable": False})
             available_8gb = gpus_collection.count_documents({"capacity": 8, "isAvailable": True})
             
-            # 대기열 길이 조회
-            jobs_in_queue = job_queue_service.get_queue_length()
+            # 대기열 길이 조회 (pending 상태인 작업 수)
+            jobs_collection = db.get_collection('jobs')
+            jobs_in_queue = jobs_collection.count_documents({"status": "pending"})
             
             gpu_status = {
                 "gpu24gbActive": active_24gb,

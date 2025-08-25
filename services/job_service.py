@@ -3,7 +3,6 @@ from datetime import datetime, timezone, timedelta
 
 from database import db
 from models import Job, JobCreate
-from services.job_queue_service import job_queue_service
 from database_init import get_next_job_id
 
 KST = timezone(timedelta(hours=9))
@@ -80,24 +79,34 @@ class JobService:
 
     def _process_queued_jobs(self):       
         try:
-            next_job_id = job_queue_service.get_next_job()
-            if not next_job_id:
+            # 대기 중인 작업 중에서 요청 시간이 가장 빠른 작업을 찾기
+            jobs_collection = db.get_collection('jobs')
+            oldest_pending_job = jobs_collection.find_one(
+                {"status": "pending"},
+                sort=[("requested_at", 1)]  # 요청 시간 오름차순 (가장 빠른 것부터)
+            )
+            
+            if not oldest_pending_job:
                 return
             
+            next_job_id = oldest_pending_job["_id"]
             assigned_gpu_id = self._assign_available_gpu()
             if not assigned_gpu_id:
                 return
             
             # 작업에 GPU 배정하고 상태를 running으로 변경
-            jobs_collection = db.get_collection('jobs')
             result = jobs_collection.update_one(
                 {"_id": next_job_id},
-                {"$set": {"gpuId": assigned_gpu_id, "status": "running"}}
+                {"$set": {
+                    "gpuId": assigned_gpu_id, 
+                    "status": "running",
+                    "started_at": get_korean_time().isoformat()  # 작업 시작 시간 기록
+                }}
             )
             
             if result.modified_count > 0:
-                job_queue_service.remove_from_queue(next_job_id)
                 # print(f"대기열 작업 {next_job_id}에 GPU {assigned_gpu_id} 배정 완료")
+                pass
             
         except Exception as e:
             print(f"대기열 작업 처리 실패: {e}")
@@ -118,11 +127,13 @@ class JobService:
             new_job_dict["timestamp"] = get_korean_time().isoformat()
             new_job_dict["status"] = "pending"
             new_job_dict["log"] = None
+            new_job_dict["requested_at"] = get_korean_time().isoformat()  # 작업 요청 시간 기록
             
             if assigned_gpu_id:
                 # GPU가 있으면 바로 배정
                 new_job_dict["gpuId"] = assigned_gpu_id
                 new_job_dict["status"] = "running"
+                new_job_dict["started_at"] = get_korean_time().isoformat()  # 작업 시작 시간 기록
             else:
                 # GPU가 없으면 대기열에 추가
                 new_job_dict["gpuId"] = None
@@ -132,11 +143,6 @@ class JobService:
             
             if created_job:             
                 job_dict = dict(created_job)
-                
-                # GPU가 없어서 대기열에 추가된 경우
-                if not assigned_gpu_id:
-                    job_queue_service.add_to_queue(job_id)
-                    # print(f"작업을 대기열에 추가했습니다.")
                 return Job(**job_dict)
             return None
             
@@ -182,7 +188,7 @@ class JobService:
                 
                 self._process_queued_jobs()
             
-            job_queue_service.remove_from_queue(job_id)
+            # 대기열 관련 코드 제거 (더 이상 별도 큐 컬렉션 사용하지 않음)
             
             result = jobs_collection.delete_one({"_id": job_id})
             return result.deleted_count > 0
