@@ -264,4 +264,49 @@ class JobService:
         else:
             return None
 
+    def get_job_log(self, job_id: int) -> Optional[dict]:
+        try:
+            jobs_collection = db.get_collection('jobs')
+            
+            job = jobs_collection.find_one({"_id": job_id})
+            if not job:
+                print(f"❌ Job ID {job_id}을(를) 찾을 수 없습니다.")
+                return None
+            
+            # 테스트용 로그 파일
+            log_file_path = "logs_test.txt"
+            
+            try:
+                with open(log_file_path, 'r', encoding='utf-8') as file:
+                    log_content = file.read()
+                
+                return {
+                    "code": 200,
+                    "message": f"Job ID {job_id}의 로그를 성공적으로 불러왔습니다.",
+                    "log_content": log_content,
+                    "file_name": log_file_path
+                }
+                
+            except FileNotFoundError:
+                # print(f"❌ 로그 파일을 찾을 수 없습니다: {log_file_path}")
+                return {
+                    "code": 404,
+                    "message": f"로그 파일을 찾을 수 없습니다: {log_file_path}",
+                    "log_content": None,
+                    "file_name": log_file_path
+                }
+                
+            except Exception as e:
+                # print(f"❌ 로그 파일 읽기 실패: {e}")
+                return {
+                    "code": 500,
+                    "message": f"로그 파일 읽기에 실패했습니다: {str(e)}",
+                    "log_content": None,
+                    "file_name": log_file_path
+                }
+                
+        except Exception as e:
+            # print(f"❌ 작업 로그 조회 중 오류 발생: {e}")
+            return None
+
 job_service = JobService()

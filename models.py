@@ -73,4 +73,8 @@ class FileItem(BaseModel):  #파일 또는 폴더의 기본 정보
 
 class DirectoryContent(BaseModel):
     current_path: str
-    items: List[FileItem]    
+    items: List[FileItem]
+
+class JobLogResponse(ApiResponse):
+    log_content: Optional[str] = None
+    file_name: Optional[str] = None    

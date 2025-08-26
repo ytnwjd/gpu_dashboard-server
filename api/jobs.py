@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Body, Query
 from typing import List, Optional
 from pydantic import BaseModel
 
-from models import ApiResponse, Job, JobListResponse, JobCreate, JobResponse
+from models import ApiResponse, Job, JobListResponse, JobCreate, JobResponse, JobLogResponse
 from services.job_service import job_service
 
 class JobStatusUpdate(BaseModel):
@@ -160,6 +160,44 @@ async def update_job(job_id: int, job_data: JobCreate = Body(...)):
                 code=500,
                 message=f"Job 수정에 실패했습니다.: {str(e)}",
                 data=None
+            ).model_dump()
+        )
+
+@router.get("/{job_id}/log", response_model=JobLogResponse, 
+            summary="Job 로그 조회",
+            description="Job ID에 해당하는 Job의 로그 파일 반환")
+async def get_job_log(job_id: int):
+    try:
+        log_data = job_service.get_job_log(job_id)
+        
+        if not log_data:
+            raise HTTPException(
+                status_code=404,
+                detail=JobLogResponse(
+                    code=404,
+                    message=f"Job ID {job_id}을(를) 찾을 수 없습니다.",
+                    log_content=None,
+                    file_name=None
+                ).model_dump()
+            )
+        
+        return JobLogResponse(
+            code=log_data["code"],
+            message=log_data["message"],
+            log_content=log_data["log_content"],
+            file_name=log_data["file_name"]
+        )
+        
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=JobLogResponse(
+                code=500,
+                message=f"Job 로그 조회에 실패했습니다.: {str(e)}",
+                log_content=None,
+                file_name=None
             ).model_dump()
         )
 
