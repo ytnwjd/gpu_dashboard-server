@@ -1,8 +1,12 @@
 from fastapi import APIRouter, HTTPException, Body, Query
 from typing import List, Optional
+from pydantic import BaseModel
 
 from models import ApiResponse, Job, JobListResponse, JobCreate, JobResponse
 from services.job_service import job_service
+
+class JobStatusUpdate(BaseModel):
+    status: str
 
 router = APIRouter(
     prefix="/api/jobs",  # 이 라우터의 모든 경로에 "/api/jobs" 접두사 자동 적용

@@ -16,6 +16,9 @@ class JobService:
             jobs_collection = db.get_collection('jobs')
             jobs_data = jobs_collection.find().sort("requested_at", -1)
             
+            self._check_and_release_completed_jobs()
+            jobs_data = jobs_collection.find().sort("requested_at", -1)
+            
             jobs = []
             for job_data in jobs_data:               
                 job_dict = dict(job_data)
@@ -27,6 +30,8 @@ class JobService:
 
     def get_job_by_id(self, job_id: int) -> Optional[Job]:
         try:
+            self._check_and_release_completed_jobs()
+            
             jobs_collection = db.get_collection('jobs')
             job_data = jobs_collection.find_one({"_id": job_id})
             if job_data:
@@ -77,6 +82,45 @@ class JobService:
             print(f"GPU 배정 실패: {e}")
             return None
 
+    def _check_and_release_completed_jobs(self):
+        try:
+            jobs_collection = db.get_collection('jobs')
+            gpus_collection = db.get_collection('gpus')
+            
+            # completed나 failed 상태이면서 GPU가 배정된 작업들 찾기
+            completed_jobs = jobs_collection.find({
+                "status": {"$in": ["completed", "failed"]},
+                "gpuId": {"$ne": None}
+            })
+            
+            released_gpus = []
+            
+            for job in completed_jobs:
+                job_id = job["_id"]
+                gpu_id = job["gpuId"]
+                
+                # GPU를 사용 가능 상태로 변경
+                gpus_collection.update_one(
+                    {"_id": gpu_id},
+                    {"$set": {"isAvailable": True}}
+                )
+                
+                # 작업에서 GPU ID 제거
+                jobs_collection.update_one(
+                    {"_id": job_id},
+                    {"$unset": {"gpuId": ""}}
+                )
+                
+                released_gpus.append(gpu_id)
+                print(f"🔄 Job ID {job_id}의 GPU {gpu_id}를 해제했습니다.")
+            
+            # GPU가 해제되었다면 대기 중인 작업에 자동 할당
+            if released_gpus:            
+                self._process_queued_jobs()
+            
+        except Exception as e:
+            print(f"완료된 작업 GPU 해제 중 오류 발생: {e}")
+
     def _process_queued_jobs(self):       
         try:
             # 대기 중인 작업 중에서 요청 시간이 가장 빠른 작업을 찾기
@@ -105,8 +149,7 @@ class JobService:
             )
             
             if result.modified_count > 0:
-                # print(f"대기열 작업 {next_job_id}에 GPU {assigned_gpu_id} 배정 완료")
-                pass
+                print(f"🚀 대기 작업 {next_job_id}에 GPU {assigned_gpu_id} 배정 완료")
             
         except Exception as e:
             print(f"대기열 작업 처리 실패: {e}")
