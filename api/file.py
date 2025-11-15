@@ -7,19 +7,18 @@ from services.file_service import FileService
 from models import DirectoryContent
 
 router = APIRouter(
-    prefix="/api/files",  
+    prefix="/user/{user_id}/file",  
     tags=["files"],       
 )
 
-user = "yusujeong"
-
-def get_file_service() -> FileService:
-    base_path = f"/Users/{user}"
+def get_file_service(user_id: str) -> FileService:
+    base_path = f"/Users/{user_id}"
     
     return FileService(base_remote_path=base_path) 
 
-@router.get("/list-contents", response_model=DirectoryContent, description="특정 경로에 있는 파일 및 폴더 목록을 조회")
+@router.get("/list", response_model=DirectoryContent, description="특정 경로에 있는 파일 및 폴더 목록을 조회")
 async def list_contents(
+    user_id: str,
     path: Optional[str] = "",
     file_service: FileService = Depends(get_file_service) 
 ):
