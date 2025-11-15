@@ -5,7 +5,7 @@ from models import ApiResponse, GpuStatus, GpuStatusResponse, Gpu
 from services.gpu_service import gpu_service
 
 router = APIRouter(
-    prefix="/api/gpu",  
+    prefix="/resource/gpu",  
     tags=["GPU"],    
 )
 
