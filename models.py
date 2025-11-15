@@ -48,6 +48,8 @@ class JobCreate(BaseModel):
 
 class JobResponse(ApiResponse):
     data: Optional[Job] = None
+    log_content: Optional[str] = None
+    file_name: Optional[str] = None
 
 class JobListResponse(ApiResponse):
     data: Optional[List[Job]] = None

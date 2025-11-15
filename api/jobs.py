@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Body, Query
-from typing import List, Optional
+from typing import List, Optional, Union
 from pydantic import BaseModel
 
 from models import ApiResponse, Job, JobListResponse, JobCreate, JobResponse, JobLogResponse
@@ -9,35 +9,39 @@ class JobStatusUpdate(BaseModel):
     status: str
 
 router = APIRouter(
-    prefix="/api/jobs",  # 이 라우터의 모든 경로에 "/api/jobs" 접두사 자동 적용
+    prefix="/user/{user_id}/jobs", 
     tags=["Jobs"],       # API 문서에서 그룹화할 태그
 )
 
-@router.get("/", response_model=JobListResponse, 
-            summary="모든 Job 목록 조회",
-            description="모든 Job 목록을 최신순으로 가져온다.")
-async def get_jobs():
-    try:
-        jobs = job_service.get_all_jobs()
-        return JobListResponse(
-            code=200,
-            message="Job list를 불러왔습니다.",
-            data=jobs
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=ApiResponse(
-                code=500,
-                message=f"Job list 불러오기를 실패했습니다.: {str(e)}",
-                data=None
-            ).model_dump()
-        )
 
-@router.get("/{job_id}", response_model=JobResponse, 
+@router.get("/", 
             summary="ID로 Job 조회",
-            description="특정 Job ID에 해당하는 Job의 상세 정보를 가져온다.")
-async def get_job_by_id(job_id: int):
+            description="특정 Job ID에 해당하는 Job의 상세 정보를 가져온다. job_id가 없으면 전체 목록을 반환한다.")
+async def get_job_by_id(
+    user_id: str,
+    job_id: Optional[int] = Query(None, description="조회할 Job ID"),
+    log: bool = Query(False, description="로그 조회 여부")
+) -> Union[JobListResponse, JobResponse, JobLogResponse]:
+    # job_id가 없으면 전체 목록 반환
+    if job_id is None:
+        try:
+            jobs = job_service.get_all_jobs()
+            return JobListResponse(
+                code=200,
+                message="Job list를 불러왔습니다.",
+                data=jobs
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=ApiResponse(
+                    code=500,
+                    message=f"Job list 불러오기를 실패했습니다.: {str(e)}",
+                    data=None
+                ).model_dump()
+            )
+    
+    # Job 정보 조회
     try:
         job = job_service.get_job_by_id(job_id)
         if not job:
@@ -49,11 +53,45 @@ async def get_job_by_id(job_id: int):
                     data=None
                 ).model_dump()
             )
-        return JobResponse(
-            code=200,
-            message=f"Job {job_id}번 정보를 불러왔습니다.",
-            data=job
-        )
+        
+        # log=true이면 로그 정보도 함께 조회
+        if log:
+            try:
+                log_data = job_service.get_job_log(job_id)
+                if log_data and log_data.get("code") == 200:
+                    return JobResponse(
+                        code=200,
+                        message=f"Job {job_id}번 정보를 불러왔습니다.",
+                        data=job,
+                        log_content=log_data.get("log_content"),
+                        file_name=log_data.get("file_name")
+                    )
+                else:
+                    # 로그 조회 실패해도 job 정보는 반환
+                    return JobResponse(
+                        code=200,
+                        message=f"Job {job_id}번 정보를 불러왔습니다. (로그 조회 실패)",
+                        data=job,
+                        log_content=None,
+                        file_name=None
+                    )
+            except Exception as e:
+                # 로그 조회 중 오류가 발생해도 job 정보는 반환
+                return JobResponse(
+                    code=200,
+                    message=f"Job {job_id}번 정보를 불러왔습니다. (로그 조회 중 오류: {str(e)})",
+                    data=job,
+                    log_content=None,
+                    file_name=None
+                )
+        else:   # log=false인 경우
+            return JobResponse(
+                code=200,
+                message=f"Job {job_id}번 정보를 불러왔습니다.",
+                data=job,
+                log_content=None,
+                file_name=None
+            )
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
@@ -117,10 +155,14 @@ async def create_job(job_data: JobCreate = Body(...)):
             ).model_dump()
         )
 
-@router.put("/{job_id}", response_model=JobResponse,
+@router.put("/", response_model=JobResponse,
             summary="Job 수정",
             description="특정 Job ID에 해당하는 Job을 수정")
-async def update_job(job_id: int, job_data: JobCreate = Body(...)):
+async def update_job(
+    user_id: str,
+    job_id: int = Query(..., description="수정할 Job ID"),
+    job_data: JobCreate = Body(...)
+):
     try:
         validation_message = job_service.inspect_job(job_data)
 
@@ -163,47 +205,13 @@ async def update_job(job_id: int, job_data: JobCreate = Body(...)):
             ).model_dump()
         )
 
-@router.get("/{job_id}/log", response_model=JobLogResponse, 
-            summary="Job 로그 조회",
-            description="Job ID에 해당하는 Job의 로그 파일 반환")
-async def get_job_log(job_id: int):
-    try:
-        log_data = job_service.get_job_log(job_id)
-        
-        if not log_data:
-            raise HTTPException(
-                status_code=404,
-                detail=JobLogResponse(
-                    code=404,
-                    message=f"Job ID {job_id}을(를) 찾을 수 없습니다.",
-                    log_content=None,
-                    file_name=None
-                ).model_dump()
-            )
-        
-        return JobLogResponse(
-            code=log_data["code"],
-            message=log_data["message"],
-            log_content=log_data["log_content"],
-            file_name=log_data["file_name"]
-        )
-        
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=JobLogResponse(
-                code=500,
-                message=f"Job 로그 조회에 실패했습니다.: {str(e)}",
-                log_content=None,
-                file_name=None
-            ).model_dump()
-        )
 
-@router.delete("/{job_id}", response_model=ApiResponse, summary="Job 삭제",
+@router.delete("/", response_model=ApiResponse, summary="Job 삭제",
                 description="특정 Job ID에 해당하는 Job을 삭제한다.")
-async def delete_job(job_id: int):
+async def delete_job(
+    user_id: str,
+    job_id: int = Query(..., description="삭제할 Job ID")
+):
     try:
         if not job_service.delete_job(job_id):
             raise HTTPException(
