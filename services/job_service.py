@@ -82,10 +82,54 @@ class JobService:
             print(f"GPU 배정 실패: {e}")
             return None
 
-    def _check_and_release_completed_jobs(self):
+    def _release_gpu_for_job(self, job_id: int) -> Optional[int]:
+        """특정 작업의 GPU를 해제하고 completed_at을 저장"""
         try:
             jobs_collection = db.get_collection('jobs')
             gpus_collection = db.get_collection('gpus')
+            
+            job = jobs_collection.find_one({"_id": job_id})
+            if not job or not job.get("gpuId"):
+                return None
+            
+            gpu_id = job["gpuId"]
+            
+            # GPU가 존재하는지 확인
+            gpu = gpus_collection.find_one({"_id": gpu_id})
+            if not gpu:
+                print(f"GPU {gpu_id}를 찾을 수 없습니다.")
+                return None
+            
+            # GPU를 사용 가능 상태로 변경
+            result = gpus_collection.update_one(
+                {"_id": gpu_id},
+                {"$set": {"isAvailable": True}}
+            )
+            
+            if result.modified_count == 0:
+                print(f"GPU {gpu_id}의 isAvailable 업데이트 실패")
+            else:
+                print(f"GPU {gpu_id}의 isAvailable을 True로 설정했습니다.")
+            
+            update_data = {"$unset": {"gpuId": ""}}
+            if not job.get("completed_at"):
+                update_data["$set"] = {"completed_at": get_korean_time().isoformat()}
+            
+            jobs_collection.update_one(
+                {"_id": job_id},
+                update_data
+            )
+            
+            print(f"Job {job_id}의 GPU {gpu_id}를 해제했습니다.")
+            return gpu_id
+            
+        except Exception as e:
+            print(f"작업 GPU 해제 중 오류 발생: {e}")
+            return None
+
+    def _check_and_release_completed_jobs(self):
+        try:
+            jobs_collection = db.get_collection('jobs')
             
             # completed나 failed 상태이면서 GPU가 배정된 작업들 찾기
             completed_jobs = jobs_collection.find({
@@ -97,22 +141,9 @@ class JobService:
             
             for job in completed_jobs:
                 job_id = job["_id"]
-                gpu_id = job["gpuId"]
-                
-                # GPU를 사용 가능 상태로 변경
-                gpus_collection.update_one(
-                    {"_id": gpu_id},
-                    {"$set": {"isAvailable": True}}
-                )
-                
-                # 작업에서 GPU ID 제거
-                jobs_collection.update_one(
-                    {"_id": job_id},
-                    {"$unset": {"gpuId": ""}}
-                )
-                
-                released_gpus.append(gpu_id)
-                print(f"🔄 Job ID {job_id}의 GPU {gpu_id}를 해제했습니다.")
+                gpu_id = self._release_gpu_for_job(job_id)
+                if gpu_id:
+                    released_gpus.append(gpu_id)
             
             # GPU가 해제되었다면 대기 중인 작업에 자동 할당
             if released_gpus:            
@@ -145,7 +176,8 @@ class JobService:
                     "gpuId": assigned_gpu_id, 
                     "status": "running",
                     "started_at": get_korean_time().isoformat()  # 작업 시작 시간 기록
-                }}
+                },
+                 "$unset": {"queueNumber": ""}}
             )
             
             if result.modified_count > 0:
@@ -183,6 +215,9 @@ class JobService:
             else:
                 # GPU가 없으면 대기열에 추가
                 new_job_dict["gpuId"] = None
+                
+                pending_count = jobs_collection.count_documents({"status": "pending"})
+                new_job_dict["queueNumber"] = pending_count + 1
             
             result = jobs_collection.insert_one(new_job_dict)
             created_job = jobs_collection.find_one({"_id": job_id})
@@ -194,6 +229,57 @@ class JobService:
             
         except Exception as e:
             print(f"작업 생성 실패: {e}")
+            return None
+
+    def update_job_status(self, job_id: int, new_status: str) -> Optional[Job]:
+        """작업 상태를 변경하고, completed/failed인 경우 GPU 릴리즈"""
+        try:
+            jobs_collection = db.get_collection('jobs')
+            
+            # 기존 작업 조회
+            old_job = jobs_collection.find_one({"_id": job_id})
+            if not old_job:
+                return None
+            
+            old_status = old_job.get("status")
+            
+            # 상태가 변경되지 않으면 그대로 반환
+            if old_status == new_status:
+                job_dict = dict(old_job)
+                return Job(**job_dict)
+            
+            # 상태 업데이트
+            update_data = {"status": new_status}
+            
+            # completed나 failed로 변경되는 경우 completed_at 저장
+            if new_status in ["completed", "failed"] and not old_job.get("completed_at"):
+                update_data["completed_at"] = get_korean_time().isoformat()
+            
+            result = jobs_collection.update_one(
+                {"_id": job_id},
+                {"$set": update_data}
+            )
+            
+            if result.modified_count > 0:
+                updated_job = jobs_collection.find_one({"_id": job_id})
+                if updated_job:
+    
+                    if (new_status in ["completed", "failed"] and 
+                        old_status not in ["completed", "failed"] and 
+                        old_job.get("gpuId")):
+                        released_gpu_id = self._release_gpu_for_job(job_id)
+                        if released_gpu_id:
+                            # GPU 해제 후 대기 중인 작업 처리
+                            self._process_queued_jobs()
+                            updated_job = jobs_collection.find_one({"_id": job_id})
+                    
+                    if updated_job:
+                        job_dict = dict(updated_job)
+                        return Job(**job_dict)
+            return None
+            
+        except Exception as e:
+            print(f"작업 상태 업데이트 실패: {e}")
             return None
 
     def update_job(self, job_id: int, job_data: JobCreate) -> Optional[Job]:
@@ -226,10 +312,16 @@ class JobService:
             if job_data and job_data.get("gpuId"):
                 gpu_id = job_data["gpuId"]
                 gpus_collection = db.get_collection('gpus')
-                gpus_collection.update_one(
+                
+                result = gpus_collection.update_one(
                     {"_id": gpu_id},
                     {"$set": {"isAvailable": True}}
-                )                
+                )
+                
+                if result.modified_count > 0:
+                    print(f"삭제된 Job ID {job_id}의 GPU {gpu_id}를 해제했습니다.")
+                else:
+                    print(f"GPU {gpu_id}의 isAvailable 업데이트 실패")
                 
                 self._process_queued_jobs()
             
